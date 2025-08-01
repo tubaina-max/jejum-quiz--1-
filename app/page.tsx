@@ -4,16 +4,25 @@ import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Flame, Users, Clock, Star } from "lucide-react"
 import Script from "next/script"
-import { useRouter, useSearchParams } from "next/navigation"
+import { useRouter } from "next/navigation"
 
 export default function LandingPage() {
   const [showStats, setShowStats] = useState(false)
+  const [currentParams, setCurrentParams] = useState<string>("")
   const router = useRouter()
-  const searchParams = useSearchParams()
+
+  // Capturar UTMs no lado do cliente
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setCurrentParams(window.location.search)
+    }
+  }, [])
 
   // Função para preservar UTMs na navegação
   const navigateWithUTMs = (path: string) => {
-    const currentParams = new URLSearchParams(window.location.search)
+    if (typeof window === "undefined") return
+
+    const urlParams = new URLSearchParams(window.location.search)
     const utmParams = new URLSearchParams()
     
     // Preservar todos os parâmetros UTM e outros parâmetros de tracking
@@ -25,7 +34,7 @@ export default function LandingPage() {
     ]
     
     trackingParams.forEach(param => {
-      const value = currentParams.get(param)
+      const value = urlParams.get(param)
       if (value) {
         utmParams.set(param, value)
       }
@@ -49,8 +58,10 @@ export default function LandingPage() {
     }
 
     // Log UTMs para debug (remover em produção)
-    console.log("UTMs atuais:", Object.fromEntries(searchParams.entries()))
-  }, [searchParams])
+    if (typeof window !== "undefined" && window.location.search) {
+      console.log("UTMs atuais:", window.location.search)
+    }
+  }, [])
 
   return (
     <>
