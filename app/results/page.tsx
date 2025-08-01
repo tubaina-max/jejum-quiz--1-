@@ -39,36 +39,128 @@ export default function ResultsPage() {
     window.location.href = finalCheckoutUrl
   }
 
+  // ✅ USEEFFECT CORRIGIDO - Apenas ViewContent quando carrega
   useEffect(() => {
+    console.log("📄 Página de resultados carregada");
+
+    // ✅ Verificar UTMify e disparar ViewContent
+    const checkAndTrackPageView = () => {
+      if (typeof window !== "undefined" && (window as any).utmify) {
+        try {
+          (window as any).utmify.track('ViewContent', {
+            content_name: 'Results Page - Plano A Seca Jejum',
+            content_category: 'results_page',
+            value: 19.90,
+            currency: 'BRL',
+            content_ids: ['results-plano-a'],
+            page_title: 'Resultados do Quiz'
+          });
+          console.log("✅ UTMify ViewContent disparado na página de resultados");
+        } catch (error) {
+          console.error("❌ Erro UTMify ViewContent:", error);
+        }
+      } else {
+        console.log("❌ UTMify não encontrado, tentando novamente...");
+        setTimeout(checkAndTrackPageView, 1000);
+      }
+    };
+
+    // Tentar múltiplas vezes
+    setTimeout(checkAndTrackPageView, 500);
+    setTimeout(checkAndTrackPageView, 2000);
+    setTimeout(checkAndTrackPageView, 5000);
+
+    // Google Analytics
     if (typeof window !== "undefined" && (window as any).gtag) {
-      ;(window as any).gtag("event", "results_page_view", {
+      (window as any).gtag("event", "results_page_view", {
         page_title: "Plano A - Seca Jejum Results",
         page_path: "/results",
       })
     }
   }, [])
 
+  // ✅ FUNÇÃO CORRIGIDA - InitiateCheckout no clique do botão
   const handleReceivePlan = () => {
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      ;(window as any).gtag("event", "plan_received", {
-        plan_name: "Plano A - Seca Jejum",
-        price: "R\$ 19,90",
-      })
+    console.log("🛒 Botão clicado - Disparando InitiateCheckout");
+
+    // ✅ 1. DISPARAR INITIATE CHECKOUT (UTMify)
+    if (typeof window !== "undefined" && (window as any).utmify) {
+      try {
+        (window as any).utmify.track('InitiateCheckout', {
+          content_name: 'Plano A - Seca Jejum',
+          content_category: 'digital_product',
+          value: 19.90,
+          currency: 'BRL',
+          content_ids: ['plano-a-seca-jejum'],
+          num_items: 1,
+          content_type: 'product'
+        });
+        console.log("✅ UTMify InitiateCheckout disparado com sucesso!");
+      } catch (error) {
+        console.error("❌ Erro ao disparar InitiateCheckout UTMify:", error);
+      }
+    } else {
+      console.log("❌ UTMify não encontrado para InitiateCheckout!");
     }
-    // ✅ CORREÇÃO: Navegar para checkout preservando UTMs
-    navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380")
+
+    // ✅ 2. GOOGLE ANALYTICS BEGIN_CHECKOUT
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      try {
+        (window as any).gtag("event", "begin_checkout", {
+          currency: 'BRL',
+          value: 19.90,
+          items: [{
+            item_id: 'plano-a-seca-jejum',
+            item_name: 'Plano A - Seca Jejum',
+            category: 'digital_product',
+            price: 19.90,
+            quantity: 1
+          }]
+        });
+        console.log("✅ Google Analytics begin_checkout disparado!");
+      } catch (error) {
+        console.error("❌ Erro ao disparar begin_checkout GA:", error);
+      }
+    }
+
+    // ✅ 3. DELAY ANTES DO REDIRECIONAMENTO
+    console.log("⏳ Aguardando 1.5s para garantir envio dos eventos...");
+    setTimeout(() => {
+      console.log("🚀 Redirecionando para checkout...");
+      navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380");
+    }, 1500);
   }
 
   return (
     <>
-      {/* Scripts mantidos iguais */}
+      {/* ✅ Scripts melhorados com verificação */}
       <Script id="utmify-pixel-script" strategy="afterInteractive">
         {`
+          console.log("🔄 Carregando UTMify pixel na página de resultados...");
           window.pixelId = "688bd76d39249d6f834ff133";
+          
+          window.checkUTMifyResults = function() {
+            if (window.utmify) {
+              console.log("✅ UTMify carregado na página de resultados!");
+              return true;
+            }
+            return false;
+          };
+          
           var a = document.createElement("script");
           a.setAttribute("async", "");
           a.setAttribute("defer", "");
           a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel.js");
+          
+          a.onload = function() {
+            console.log("✅ Script UTMify carregado na página de resultados");
+            setTimeout(() => window.checkUTMifyResults(), 1000);
+          };
+          
+          a.onerror = function() {
+            console.error("❌ Erro ao carregar UTMify na página de resultados");
+          };
+          
           document.head.appendChild(a);
         `}
       </Script>
@@ -79,6 +171,8 @@ export default function ResultsPage() {
         data-utmify-prevent-subids
         async
         defer
+        onLoad={() => console.log("✅ UTMify UTMs script carregado na página de resultados")}
+        onError={() => console.error("❌ Erro ao carregar UTMify UTMs na página de resultados")}
       />
 
       <Script async src="https://www.googletagmanager.com/gtag/js?id=G-GVND5XYZ4T" />
@@ -88,6 +182,7 @@ export default function ResultsPage() {
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
           gtag('config', 'G-GVND5XYZ4T');
+          console.log("✅ Google Analytics configurado na página de resultados");
         `}
       </Script>
 
@@ -217,7 +312,7 @@ export default function ResultsPage() {
             }
           `}</style>
 
-          {/* Oferta Principal Mobile - CORRIGIDA */}
+          {/* ✅ Oferta Principal Mobile - COM INITIATE CHECKOUT CORRIGIDO */}
           <Card className="mb-5 border-4 border-green-400 shadow-2xl bg-gradient-to-br from-green-50 to-white">
             <CardContent className="p-4 text-center">
               <div className="bg-red-500 text-white px-3 py-2 rounded-full inline-block mb-3 text-xs font-bold animate-pulse">
@@ -237,14 +332,14 @@ export default function ResultsPage() {
                   <span className="text-2xl font-black text-green-600 ml-1">R\$ 5,77</span>
                 </div>
                 <p className="text-xs text-green-700 font-semibold">
-                  ✅ Ou R\$ 19,90 à vista 79% de desconto)
+                  ✅ Ou R\$ 19,90 à vista (79% de desconto)
                 </p>
               </div>
               <Button
                 className="w-full bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white py-3 px-2 rounded-xl font-bold text-sm shadow-xl transform hover:scale-105 transition-all duration-200 leading-tight"
                 onClick={handleReceivePlan}
               >
-                🔥 QUERO MEU PLANO AGORA!
+                �� QUERO MEU PLANO AGORA!
               </Button>
               <div className="grid grid-cols-3 gap-2 mt-3 text-xs text-gray-600">
                 <div className="flex flex-col items-center">
@@ -418,7 +513,7 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* Segunda Oferta Mobile - CORRIGIDA */}
+          {/* ✅ Segunda Oferta Mobile - COM INITIATE CHECKOUT CORRIGIDO */}
           <Card className="mb-5 border-4 border-red-400 shadow-2xl bg-gradient-to-br from-red-50 to-yellow-50">
             <CardContent className="p-4 text-center">
               <div className="bg-red-500 text-white px-3 py-2 rounded-full inline-block mb-3 text-xs font-bold animate-bounce">
@@ -475,7 +570,7 @@ export default function ResultsPage() {
               <strong>Sem perguntas, sem burocracia.</strong>
             </p>
             <p className="text-blue-600 text-xs font-semibold">
-              📧 Suporte: <a href="mailto:secaplanoa@gmail.com" className="underline">
+              📧 Suporte: <a href="mailto:secaplanoa@gmail.com" className="underline" >
                 secaplanoa@gmail.com
               </a>
             </p>
@@ -537,7 +632,7 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* CTA Final Mobile - CORRIGIDO */}
+          {/* ✅ CTA Final Mobile - COM INITIATE CHECKOUT CORRIGIDO */}
           <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-4 text-center text-white mb-4">
             <h3 className="text-lg font-bold mb-2">🎯 Sua transformação começa HOJE!</h3>
             <p className="text-xs mb-3 opacity-90">
@@ -555,5 +650,3 @@ export default function ResultsPage() {
     </>
   )
 }
-
-
