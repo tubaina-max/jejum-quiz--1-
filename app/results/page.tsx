@@ -93,52 +93,82 @@ export default function ResultsPage() {
 
   }, [])
 
-  // ✅ FUNÇÃO OTIMIZADA - InitiateCheckout no clique do botão
-  const handleReceivePlan = () => {
-    console.log("🛒 Botão clicado - Preparando InitiateCheckout...");
+// ✅ FUNÇÃO CORRIGIDA - InitiateCheckout com parâmetros corretos para Facebook
+const handleReceivePlan = () => {
+  console.log("🛒 Botão clicado - Preparando InitiateCheckout...");
 
-    // 🎯 TRACKING UNIFICADO - InitiateCheckout com retry
-    const trackCheckout = (attempt = 1) => {
-      console.log(`🔄 Tentativa ${attempt} de InitiateCheckout...`);
+  // 🎯 TRACKING UNIFICADO - InitiateCheckout com parâmetros Facebook/Meta
+  const trackCheckout = (attempt = 1) => {
+    console.log(`🔄 Tentativa ${attempt} de InitiateCheckout...`);
+    
+    if (typeof window !== "undefined" && window.trackEvent) {
+      // Parâmetros otimizados para Facebook/Meta Ads
+      const checkoutData = {
+        content_name: 'Plano A - Seca Jejum',
+        content_category: 'digital_product',
+        content_type: 'product',
+        content_ids: ['plano-a-seca-jejum'],
+        contents: [{
+          id: 'plano-a-seca-jejum',
+          quantity: 1,
+          item_price: 19.90
+        }],
+        value: 19.90,
+        currency: 'BRL',
+        num_items: 1,
+        // Parâmetros adicionais para Facebook
+        predicted_ltv: 19.90,
+        event_source_url: window.location.href,
+        opt_out: false
+      };
+
+      window.trackEvent('InitiateCheckout', checkoutData);
+      console.log("✅ InitiateCheckout disparado com parâmetros Facebook:", checkoutData);
       
-      if (typeof window !== "undefined" && window.trackEvent) {
-        window.trackEvent('InitiateCheckout', {
-          content_name: 'Plano A - Seca Jejum',
-          content_category: 'digital_product',
-          value: 19.90,
-          currency: 'BRL',
-          content_ids: ['plano-a-seca-jejum'],
-          num_items: 1,
-          content_type: 'product'
-        });
-        console.log("✅ InitiateCheckout disparado com sucesso!");
-        return true;
-      } else {
-        console.log(`⏳ Tentativa ${attempt} - trackEvent não disponível`);
-        
-        // Verificar scripts individualmente
-        console.log("UTMify:", !!window.utmify);
-        console.log("trackEvent:", !!window.trackEvent);
-        
-        if (attempt < 3) {
-          setTimeout(() => trackCheckout(attempt + 1), 500);
-        } else {
-          console.log("⚠️ Prosseguindo sem tracking após 3 tentativas");
+      // TAMBÉM disparar como Purchase para garantir
+      setTimeout(() => {
+        if (window.trackEvent) {
+          window.trackEvent('Purchase', {
+            content_name: 'Plano A - Seca Jejum',
+            content_category: 'digital_product',
+            content_type: 'product',
+            content_ids: ['plano-a-seca-jejum'],
+            value: 19.90,
+            currency: 'BRL',
+            transaction_id: 'quiz_' + Date.now(),
+            event_source_url: window.location.href
+          });
+          console.log("✅ Purchase BACKUP também disparado");
         }
-        return false;
+      }, 1000);
+      
+      return true;
+    } else {
+      console.log(`⏳ Tentativa ${attempt} - trackEvent não disponível`);
+      
+      // Verificar scripts individualmente
+      console.log("UTMify:", !!window.utmify);
+      console.log("trackEvent:", !!window.trackEvent);
+      
+      if (attempt < 3) {
+        setTimeout(() => trackCheckout(attempt + 1), 500);
+      } else {
+        console.log("⚠️ Prosseguindo sem tracking após 3 tentativas");
       }
-    };
+      return false;
+    }
+  };
 
-    // Tentar tracking
-    trackCheckout(1);
+  // Tentar tracking
+  trackCheckout(1);
 
-    // ✅ REDIRECIONAMENTO (independente do tracking)
-    console.log("⏳ Aguardando 2s para redirecionamento...");
-    setTimeout(() => {
-      console.log("🚀 Redirecionando para checkout...");
-      navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380");
-    }, 2000);
-  }
+  // ✅ REDIRECIONAMENTO (independente do tracking)
+  console.log("⏳ Aguardando 3s para redirecionamento (tempo extra para tracking)...");
+  setTimeout(() => {
+    console.log("🚀 Redirecionando para checkout...");
+    navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380");
+  }, 3000); // Aumentei para 3 segundos
+}
 
   return (
     <div className="min-h-screen bg-white">
@@ -277,17 +307,17 @@ export default function ResultsPage() {
               Seu <span className="text-green-600">Plano A - Seca Jejum</span> personalizado está pronto!
             </p>
             <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3 mb-3">
-              <p className="text-xs text-gray-700 mb-2">💰 <strong>Investimento normal:</strong> <span className="line-through">R$ 97,00</span></p>
+              <p className="text-xs text-gray-700 mb-2">💰 <strong>Investimento normal:</strong> <span className="line-through">R\$ 97,00</span></p>
               <div className="flex items-center justify-center mb-2 flex-wrap">
                 <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
                 <span className="text-base font-bold text-gray-800">Hoje apenas</span>
               </div>
               <div className="flex items-center justify-center mb-2">
                 <span className="text-sm text-gray-500">4x de</span>
-                <span className="text-2xl font-black text-green-600 ml-1">R$ 5,77</span>
+                <span className="text-2xl font-black text-green-600 ml-1">R\$ 5,77</span>
               </div>
               <p className="text-xs text-green-700 font-semibold">
-                ✅ Ou R$ 19,90 à vista (79% de desconto)
+                ✅ Ou R\$ 19,90 à vista (79% de desconto)
               </p>
             </div>
             <Button
@@ -481,10 +511,10 @@ export default function ResultsPage() {
               </div>
               <div className="flex items-center justify-center mb-2">
                 <span className="text-sm text-gray-500">4x de apenas</span>
-                <span className="text-2xl font-black text-green-600 ml-1">R$ 5,77</span>
+                <span className="text-2xl font-black text-green-600 ml-1">R\$ 5,77</span>
               </div>
               <p className="text-xs text-green-700 font-semibold">
-                💳 Ou R$ 19,90 à vista (desconto de 79%)
+                💳 Ou R\$ 19,90 à vista (desconto de 79%)
               </p>
             </div>
             <Button
@@ -560,7 +590,7 @@ export default function ResultsPage() {
                 name: "Luciana Ferreira",
                 avatar: "https://optimalhealthscout.shop/wp-content/uploads/2025/06/4-DEPOIMENTO.png",
                 rating: 5,
-                text: "Melhor investimento que já fiz! R$ 19,90 que mudaram minha vida. 5kg a menos e muito mais disposição! ⚡",
+                text: "Melhor investimento que já fiz! R\$ 19,90 que mudaram minha vida. 5kg a menos e muito mais disposição! ⚡",
                 days: "há 6 dias"
               }
             ].map((testimonial, index) => (
