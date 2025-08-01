@@ -9,6 +9,36 @@ import Script from "next/script"
 export default function ResultsPage() {
   const [imageProgress, setImageProgress] = useState(50)
 
+  // ✅ Função para preservar UTMs na navegação para checkout
+  const navigateToCheckoutWithUTMs = (checkoutUrl: string) => {
+    if (typeof window === "undefined") return
+
+    const currentParams = new URLSearchParams(window.location.search)
+    const utmParams = new URLSearchParams()
+    
+    // Preservar todos os parâmetros UTM e outros parâmetros de tracking
+    const trackingParams = [
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'gclid', 'fbclid', 'msclkid', 'ttclid',
+      'ref', 'referrer', 'source', 'aid', 'cid', 'sid',
+    ]
+    
+    trackingParams.forEach(param => {
+      const value = currentParams.get(param)
+      if (value) {
+        utmParams.set(param, value)
+      }
+    })
+    
+    // Construir URL final do checkout com UTMs
+    const finalCheckoutUrl = utmParams.toString() 
+      ? `${checkoutUrl}?${utmParams.toString()}`
+      : checkoutUrl
+    
+    // Navegar para o checkout externo
+    window.location.href = finalCheckoutUrl
+  }
+
   useEffect(() => {
     if (typeof window !== "undefined" && (window as any).gtag) {
       ;(window as any).gtag("event", "results_page_view", {
@@ -22,11 +52,11 @@ export default function ResultsPage() {
     if (typeof window !== "undefined" && (window as any).gtag) {
       ;(window as any).gtag("event", "plan_received", {
         plan_name: "Plano A - Seca Jejum",
-        price: "R$ 19,90",
+        price: "R\$ 19,90",
       })
     }
-    // Redirecionar para checkout
-    window.location.href = "https://pay.cakto.com.br/37iud5r_506380"
+    // ✅ CORREÇÃO: Navegar para checkout preservando UTMs
+    navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380")
   }
 
   return (
@@ -197,17 +227,17 @@ export default function ResultsPage() {
                 Seu <span className="text-green-600">Plano A - Seca Jejum</span> personalizado está pronto!
               </p>
               <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3 mb-3">
-                <p className="text-xs text-gray-700 mb-2">💰 <strong>Investimento normal:</strong> <span className="line-through">R$ 97,00</span></p>
+                <p className="text-xs text-gray-700 mb-2">💰 <strong>Investimento normal:</strong> <span className="line-through">R\$ 97,00</span></p>
                 <div className="flex items-center justify-center mb-2 flex-wrap">
                   <CheckCircle className="w-5 h-5 text-green-600 mr-2" />
                   <span className="text-base font-bold text-gray-800">Hoje apenas</span>
                 </div>
                 <div className="flex items-center justify-center mb-2">
                   <span className="text-sm text-gray-500">4x de</span>
-                  <span className="text-2xl font-black text-green-600 ml-1">R$ 5,77</span>
+                  <span className="text-2xl font-black text-green-600 ml-1">R\$ 5,77</span>
                 </div>
                 <p className="text-xs text-green-700 font-semibold">
-                  ✅ Ou R$ 19,90 à vista 79% de desconto)
+                  ✅ Ou R\$ 19,90 à vista 79% de desconto)
                 </p>
               </div>
               <Button
@@ -401,10 +431,10 @@ export default function ResultsPage() {
                 </div>
                 <div className="flex items-center justify-center mb-2">
                   <span className="text-sm text-gray-500">4x de apenas</span>
-                  <span className="text-2xl font-black text-green-600 ml-1">R$ 5,77</span>
+                  <span className="text-2xl font-black text-green-600 ml-1">R\$ 5,77</span>
                 </div>
                 <p className="text-xs text-green-700 font-semibold">
-                  💳 Ou R$ 19,90 à vista (desconto de 79%)
+                  💳 Ou R\$ 19,90 à vista (desconto de 79%)
                 </p>
               </div>
               <Button
