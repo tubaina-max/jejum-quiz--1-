@@ -3,10 +3,41 @@
 import { useState, useEffect } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Flame, Users, Clock, Star } from "lucide-react"
-import Script from "next/script" // Import Script from next/script
+import Script from "next/script"
+import { useRouter, useSearchParams } from "next/navigation"
 
 export default function LandingPage() {
   const [showStats, setShowStats] = useState(false)
+  const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // Função para preservar UTMs na navegação
+  const navigateWithUTMs = (path: string) => {
+    const currentParams = new URLSearchParams(window.location.search)
+    const utmParams = new URLSearchParams()
+    
+    // Preservar todos os parâmetros UTM e outros parâmetros de tracking
+    const trackingParams = [
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'gclid', 'fbclid', 'msclkid', 'ttclid', // IDs de clique
+      'ref', 'referrer', 'source', // Parâmetros de referência
+      'aid', 'cid', 'sid', // IDs de afiliado/campanha
+    ]
+    
+    trackingParams.forEach(param => {
+      const value = currentParams.get(param)
+      if (value) {
+        utmParams.set(param, value)
+      }
+    })
+    
+    // Construir URL final
+    const finalUrl = utmParams.toString() 
+      ? `${path}?${utmParams.toString()}`
+      : path
+    
+    router.push(finalUrl)
+  }
 
   useEffect(() => {
     // Google Analytics event for landing page view
@@ -16,7 +47,10 @@ export default function LandingPage() {
         page_path: "/",
       })
     }
-  }, [])
+
+    // Log UTMs para debug (remover em produção)
+    console.log("UTMs atuais:", Object.fromEntries(searchParams.entries()))
+  }, [searchParams])
 
   return (
     <>
@@ -105,7 +139,7 @@ export default function LandingPage() {
               <Card
                 key={index}
                 className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:scale-[1.02] border-2 hover:border-green-400"
-                onClick={() => (window.location.href = "/quiz")}
+                onClick={() => navigateWithUTMs("/quiz")}
               >
                 <CardContent className="p-4 flex items-center space-x-4">
                   <div className="w-16 h-16 rounded-lg overflow-hidden bg-orange-100 flex-shrink-0">
