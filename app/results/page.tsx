@@ -39,36 +39,160 @@ export default function ResultsPage() {
     window.location.href = finalCheckoutUrl
   }
 
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      ;(window as any).gtag("event", "results_page_view", {
-        page_title: "Plano A - Seca Jejum Results",
-        page_path: "/results",
-      })
-    }
-  }, [])
-
+  // ✅ FUNÇÃO CORRIGIDA - Tracking completo de conversão
   const handleReceivePlan = () => {
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      ;(window as any).gtag("event", "plan_received", {
-        plan_name: "Plano A - Seca Jejum",
-        price: "R\$ 19,90",
-      })
+    console.log("🔥 Iniciando processo de compra...");
+
+    // ✅ 1. DISPARAR EVENTO UTMIFY PURCHASE
+    if (typeof window !== "undefined" && (window as any).utmify) {
+      try {
+        (window as any).utmify.track('Purchase', {
+          content_name: 'Plano A - Seca Jejum',
+          content_category: 'digital_product',
+          value: 19.90,
+          currency: 'BRL',
+          content_ids: ['plano-a-seca-jejum'],
+          num_items: 1,
+          content_type: 'product'
+        });
+        
+        console.log("✅ Evento UTMify Purchase disparado com sucesso!");
+      } catch (error) {
+        console.error("❌ Erro ao disparar evento UTMify:", error);
+      }
+    } else {
+      console.log("❌ UTMify pixel não encontrado!");
     }
-    // ✅ CORREÇÃO: Navegar para checkout preservando UTMs
-    navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380")
+
+    // ✅ 2. GOOGLE ANALYTICS PURCHASE EVENT
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      try {
+        (window as any).gtag("event", "purchase", {
+          transaction_id: `plano-a-${Date.now()}`,
+          value: 19.90,
+          currency: 'BRL',
+          items: [{
+            item_id: 'plano-a-seca-jejum',
+            item_name: 'Plano A - Seca Jejum',
+            category: 'digital_product',
+            price: 19.90,
+            quantity: 1
+          }]
+        });
+        
+        console.log("✅ Evento Google Analytics Purchase disparado!");
+      } catch (error) {
+        console.error("❌ Erro ao disparar evento GA:", error);
+      }
+    }
+
+    // ✅ 3. DELAY ANTES DO REDIRECIONAMENTO (CRÍTICO!)
+    console.log("⏳ Aguardando 1.5s para garantir envio dos eventos...");
+    setTimeout(() => {
+      console.log("🚀 Redirecionando para checkout...");
+      navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380");
+    }, 1500); // 1.5 segundos para garantir que os eventos sejam enviados
   }
+
+  // ✅ USEEFFECT MELHORADO - Verificação e eventos iniciais
+  useEffect(() => {
+    console.log("📄 Página de resultados carregada");
+
+    // ✅ Verificar se UTMify carregou (múltiplas tentativas)
+    const checkUTMify = (attempt = 1) => {
+      if (typeof window !== "undefined" && (window as any).utmify) {
+        console.log(`✅ UTMify pixel carregado com sucesso (tentativa ${attempt})`);
+        
+        // Disparar PageView
+        try {
+          (window as any).utmify.track('PageView', {
+            content_name: 'Results Page - Plano A',
+            content_category: 'conversion_page',
+            page_title: 'Resultados Plano A'
+          });
+          console.log("✅ UTMify PageView disparado");
+        } catch (error) {
+          console.error("❌ Erro no UTMify PageView:", error);
+        }
+
+        // Disparar InitiateCheckout (usuário viu a oferta)
+        try {
+          (window as any).utmify.track('InitiateCheckout', {
+            content_name: 'Plano A - Seca Jejum',
+            content_category: 'digital_product',
+            value: 19.90,
+            currency: 'BRL',
+            content_ids: ['plano-a-seca-jejum']
+          });
+          console.log("✅ UTMify InitiateCheckout disparado");
+        } catch (error) {
+          console.error("❌ Erro no UTMify InitiateCheckout:", error);
+        }
+
+      } else {
+        console.log(`❌ UTMify pixel não encontrado (tentativa ${attempt})`);
+        
+        // Tentar novamente até 5 vezes
+        if (attempt < 5) {
+          setTimeout(() => checkUTMify(attempt + 1), 2000);
+        } else {
+          console.error("🚨 UTMify não carregou após 5 tentativas!");
+        }
+      }
+    };
+
+    // Iniciar verificação
+    checkUTMify();
+
+    // ✅ Google Analytics Events
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      // Page View
+      (window as any).gtag("event", "page_view", {
+        page_title: "Results Page - Plano A",
+        page_path: "/results",
+        page_location: window.location.href
+      });
+
+      // View Item (usuário viu o produto)
+      (window as any).gtag("event", "view_item", {
+        currency: 'BRL',
+        value: 19.90,
+        items: [{
+          item_id: 'plano-a-seca-jejum',
+          item_name: 'Plano A - Seca Jejum',
+          category: 'digital_product',
+          price: 19.90,
+          quantity: 1
+        }]
+      });
+
+      console.log("✅ Google Analytics events disparados");
+    }
+
+    // ✅ Log UTMs para debug
+    if (typeof window !== "undefined" && window.location.search) {
+      console.log("🔗 UTMs atuais:", window.location.search);
+    }
+
+  }, []);
 
   return (
     <>
-      {/* Scripts mantidos iguais */}
+      {/* ✅ Scripts mantidos com verificação melhorada */}
       <Script id="utmify-pixel-script" strategy="afterInteractive">
         {`
+          console.log("🔄 Carregando UTMify pixel...");
           window.pixelId = "688bd76d39249d6f834ff133";
           var a = document.createElement("script");
           a.setAttribute("async", "");
           a.setAttribute("defer", "");
           a.setAttribute("src", "https://cdn.utmify.com.br/scripts/pixel/pixel.js");
+          a.onload = function() {
+            console.log("✅ UTMify pixel script carregado");
+          };
+          a.onerror = function() {
+            console.error("❌ Erro ao carregar UTMify pixel");
+          };
           document.head.appendChild(a);
         `}
       </Script>
@@ -79,15 +203,19 @@ export default function ResultsPage() {
         data-utmify-prevent-subids
         async
         defer
+        onLoad={() => console.log("✅ UTMify UTMs script carregado")}
+        onError={() => console.error("❌ Erro ao carregar UTMify UTMs script")}
       />
 
       <Script async src="https://www.googletagmanager.com/gtag/js?id=G-GVND5XYZ4T" />
       <Script id="google-analytics-config" strategy="afterInteractive">
         {`
+          console.log("🔄 Configurando Google Analytics...");
           window.dataLayer = window.dataLayer || [];
           function gtag(){dataLayer.push(arguments);}
           gtag('js', new Date());
           gtag('config', 'G-GVND5XYZ4T');
+          console.log("✅ Google Analytics configurado");
         `}
       </Script>
 
@@ -217,7 +345,7 @@ export default function ResultsPage() {
             }
           `}</style>
 
-          {/* Oferta Principal Mobile - CORRIGIDA */}
+          {/* ✅ Oferta Principal Mobile - COM TRACKING CORRIGIDO */}
           <Card className="mb-5 border-4 border-green-400 shadow-2xl bg-gradient-to-br from-green-50 to-white">
             <CardContent className="p-4 text-center">
               <div className="bg-red-500 text-white px-3 py-2 rounded-full inline-block mb-3 text-xs font-bold animate-pulse">
@@ -237,7 +365,7 @@ export default function ResultsPage() {
                   <span className="text-2xl font-black text-green-600 ml-1">R\$ 5,77</span>
                 </div>
                 <p className="text-xs text-green-700 font-semibold">
-                  ✅ Ou R\$ 19,90 à vista 79% de desconto)
+                  ✅ Ou R\$ 19,90 à vista (79% de desconto)
                 </p>
               </div>
               <Button
@@ -418,7 +546,7 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* Segunda Oferta Mobile - CORRIGIDA */}
+          {/* ✅ Segunda Oferta Mobile - COM TRACKING CORRIGIDO */}
           <Card className="mb-5 border-4 border-red-400 shadow-2xl bg-gradient-to-br from-red-50 to-yellow-50">
             <CardContent className="p-4 text-center">
               <div className="bg-red-500 text-white px-3 py-2 rounded-full inline-block mb-3 text-xs font-bold animate-bounce">
@@ -475,7 +603,7 @@ export default function ResultsPage() {
               <strong>Sem perguntas, sem burocracia.</strong>
             </p>
             <p className="text-blue-600 text-xs font-semibold">
-              📧 Suporte: <a href="mailto:secaplanoa@gmail.com" className="underline">
+              📧 Suporte: <a href="mailto:secaplanoa@gmail.com" className="underline" >
                 secaplanoa@gmail.com
               </a>
             </p>
@@ -537,7 +665,7 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* CTA Final Mobile - CORRIGIDO */}
+          {/* ✅ CTA Final Mobile - COM TRACKING CORRIGIDO */}
           <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-4 text-center text-white mb-4">
             <h3 className="text-lg font-bold mb-2">🎯 Sua transformação começa HOJE!</h3>
             <p className="text-xs mb-3 opacity-90">
