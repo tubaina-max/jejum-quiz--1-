@@ -6,68 +6,37 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Flame, CheckCircle, Star, Lock, ShieldCheck, Clock, Target } from "lucide-react"
 import Script from "next/script"
 
-// ✅ Declaração de tipos para UTMify
-declare global {
-  interface Window {
-    UTMify: {
-      getLink: (url: string) => string;
-    };
-  }
-}
-
 export default function ResultsPage() {
   const [imageProgress, setImageProgress] = useState(50)
 
-  // ✅ SOLUÇÃO CORRIGIDA: Função simplificada e funcional
-  const handleReceivePlan = () => {
-    console.log('🔥 Botão clicado!')
+  // ✅ Função para preservar UTMs na navegação para checkout
+  const navigateToCheckoutWithUTMs = (checkoutUrl: string) => {
+    if (typeof window === "undefined") return
+
+    const currentParams = new URLSearchParams(window.location.search)
+    const utmParams = new URLSearchParams()
     
-    // Google Analytics
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      ;(window as any).gtag("event", "plan_received", {
-        plan_name: "Plano A - Seca Jejum",
-        price: "R\$ 19,90",
-      })
-    }
-
-    // ✅ Tentar usar UTMify primeiro
-    if (typeof window !== "undefined") {
-      try {
-        // Verificar se UTMify está disponível
-        if (window.UTMify && window.UTMify.getLink) {
-          const checkoutUrl = window.UTMify.getLink("https://pay.cakto.com.br/37iud5r_506380")
-          console.log('✅ URL gerada pelo UTMify:', checkoutUrl)
-          window.location.href = checkoutUrl
-          return
-        }
-      } catch (error) {
-        console.log('⚠️ UTMify não disponível, usando fallback')
+    // Preservar todos os parâmetros UTM e outros parâmetros de tracking
+    const trackingParams = [
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'gclid', 'fbclid', 'msclkid', 'ttclid',
+      'ref', 'referrer', 'source', 'aid', 'cid', 'sid',
+    ]
+    
+    trackingParams.forEach(param => {
+      const value = currentParams.get(param)
+      if (value) {
+        utmParams.set(param, value)
       }
-
-      // ✅ FALLBACK: Captura manual das UTMs
-      const currentParams = new URLSearchParams(window.location.search)
-      const utmParams = new URLSearchParams()
-      
-      const trackingParams = [
-        'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-        'gclid', 'fbclid', 'msclkid', 'ttclid',
-        'ref', 'referrer', 'source', 'aid', 'cid', 'sid',
-      ]
-      
-      trackingParams.forEach(param => {
-        const value = currentParams.get(param)
-        if (value) {
-          utmParams.set(param, value)
-        }
-      })
-      
-      const finalCheckoutUrl = utmParams.toString() 
-        ? `https://pay.cakto.com.br/37iud5r_506380?${utmParams.toString()}`
-        : "https://pay.cakto.com.br/37iud5r_506380"
-      
-      console.log('🔄 URL final:', finalCheckoutUrl)
-      window.location.href = finalCheckoutUrl
-    }
+    })
+    
+    // Construir URL final do checkout com UTMs
+    const finalCheckoutUrl = utmParams.toString() 
+      ? `${checkoutUrl}?${utmParams.toString()}`
+      : checkoutUrl
+    
+    // Navegar para o checkout externo
+    window.location.href = finalCheckoutUrl
   }
 
   useEffect(() => {
@@ -79,9 +48,20 @@ export default function ResultsPage() {
     }
   }, [])
 
+  const handleReceivePlan = () => {
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      ;(window as any).gtag("event", "plan_received", {
+        plan_name: "Plano A - Seca Jejum",
+        price: "R\$ 19,90",
+      })
+    }
+    // ✅ CORREÇÃO: Navegar para checkout preservando UTMs
+    navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380")
+  }
+
   return (
     <>
-      {/* ✅ Scripts UTMify */}
+      {/* Scripts mantidos iguais */}
       <Script id="utmify-pixel-script" strategy="afterInteractive">
         {`
           window.pixelId = "688bd76d39249d6f834ff133";
@@ -97,7 +77,6 @@ export default function ResultsPage() {
         src="https://cdn.utmify.com.br/scripts/utms/latest.js"
         data-utmify-prevent-xcod-sck
         data-utmify-prevent-subids
-        strategy="afterInteractive"
         async
         defer
       />
@@ -238,17 +217,7 @@ export default function ResultsPage() {
             }
           `}</style>
 
-          {/* ✅ TESTE: Botão simples primeiro */}
-          <div className="mb-4 text-center">
-            <button 
-              onClick={handleReceivePlan}
-              className="bg-red-500 text-white px-6 py-3 rounded-lg font-bold text-lg hover:bg-red-600 transition-colors"
-            >
-              🧪 TESTE - CLIQUE AQUI
-            </button>
-          </div>
-
-          {/* Oferta Principal Mobile */}
+          {/* Oferta Principal Mobile - CORRIGIDA */}
           <Card className="mb-5 border-4 border-green-400 shadow-2xl bg-gradient-to-br from-green-50 to-white">
             <CardContent className="p-4 text-center">
               <div className="bg-red-500 text-white px-3 py-2 rounded-full inline-block mb-3 text-xs font-bold animate-pulse">
@@ -268,7 +237,7 @@ export default function ResultsPage() {
                   <span className="text-2xl font-black text-green-600 ml-1">R\$ 5,77</span>
                 </div>
                 <p className="text-xs text-green-700 font-semibold">
-                  ✅ Ou R\$ 19,90 à vista (79% de desconto)
+                  ✅ Ou R\$ 19,90 à vista 79% de desconto)
                 </p>
               </div>
               <Button
@@ -294,7 +263,6 @@ export default function ResultsPage() {
             </CardContent>
           </Card>
 
-          {/* Resto do conteúdo... continua igual */}
           {/* Como Funciona Mobile */}
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-3 text-center">
@@ -369,7 +337,88 @@ export default function ResultsPage() {
             </div>
           </div>
 
-          {/* Segunda Oferta Mobile */}
+          {/* Depoimentos Mobile */}
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-800 mb-3 text-center">
+              💬 O que nossas alunas estão falando sobre o <span className="text-green-600">Plano A</span>
+            </h2>
+            <div className="space-y-3">
+              {[
+                {
+                  name: "Marina Silva",
+                  avatar: "https://optimalhealthscout.shop/wp-content/uploads/2025/05/01.png",
+                  rating: 5,
+                  title: "8kg em 28 dias! Não acredito! 😱",
+                  text: "Gente, eu tô chocada! Segui o Plano A direitinho e em exatos 28 dias perdi 8kg. O melhor é que não passei fome nenhuma vez. O protocolo de jejum é muito inteligente, se adapta perfeitamente à minha rotina de mãe. Já comprei roupas tamanho M! 🥰",
+                  days: "há 2 dias"
+                },
+                {
+                  name: "Carla Mendes",
+                  avatar: "https://optimalhealthscout.shop/wp-content/uploads/2025/05/02.png",
+                  rating: 5,
+                  title: "Meu marido não para de me elogiar! ❤️",
+                  text: "Depois de 3 filhos eu achei que nunca mais ia ter o corpo que eu queria. O Plano A me provou o contrário! Em 3 semanas já eliminei 6kg e a barriga que me incomodava tanto. Meu marido não para de falar que eu tô linda! A autoestima lá em cima! 🔥",
+                  days: "há 5 dias"
+                },
+                {
+                  name: "Juliana Costa",
+                  avatar: "https://optimalhealthscout.shop/wp-content/uploads/2025/05/8db332e349f045c0e1949cb88c6096d4.jpg",
+                  rating: 5,
+                  title: "Energia de adolescente aos 45 anos! ⚡",
+                  text: "O que mais me impressionou não foi só a perda de peso (5kg até agora), mas a ENERGIA! Eu acordo disposta, não tenho mais aquela sonolência da tarde. Parece que voltei aos 20 anos! O protocolo metabólico é incrível mesmo. Vale cada centavo! 💪",
+                  days: "há 1 semana"
+                },
+                {
+                  name: "Fernanda Oliveira",
+                  avatar: "https://optimalhealthscout.shop/wp-content/uploads/2025/06/3-DEPOIMENTO.png",
+                  rating: 5,
+                  title: "Desinchei em 7 dias como prometido! 🎯",
+                  text: "Eu era cética, mas decidi testar. Em 7 dias exatos eu já via diferença no espelho! O inchaço sumiu completamente. Agora com 20 dias já são 4kg a menos e muitos elogios. O plano é muito bem estruturado, fácil de seguir. Recomendo! ✨",
+                  days: "há 3 dias"
+                }
+              ].map((testimonial, index) => (
+                <Card key={index} className="p-3 shadow-lg border-l-4 border-green-400 bg-gradient-to-r from-green-50 to-white">
+                  <div className="flex items-center mb-2">
+                    <img
+                      src={testimonial.avatar || "/placeholder.svg"}
+                      alt={testimonial.name}
+                      className="w-10 h-10 rounded-full mr-3 object-cover border-2 border-green-400 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-bold text-gray-800 text-sm truncate">{testimonial.name}</h4>
+                        <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{testimonial.days}</span>
+                      </div>
+                      <div className="flex text-yellow-400 text-xs mb-1">
+                        {"★".repeat(testimonial.rating)}
+                      </div>
+                      <p className="text-xs font-semibold text-green-700 mb-1">{testimonial.title}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-700 leading-relaxed">{testimonial.text}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Imagem de Resultados Mobile */}
+          <div className="mb-6 text-center">
+            <h2 className="text-lg font-bold text-gray-800 mb-3">
+              📸 Resultados reais em <span className="text-red-600">28 dias</span>
+            </h2>
+            <div className="bg-gradient-to-br from-green-100 to-blue-100 p-4 rounded-xl">
+              <img
+                src="https://nutricaoalimentos.shop/wp-content/uploads/2025/07/a-split-screen-photograph-showcasing-a-t_5pDfAYkqSfCrofLJyy2sjw_fApRb1upRymgCH44qbW3EQ.jpeg"
+                alt="Transformações reais do Plano A"
+                className="w-full rounded-lg shadow-xl object-cover border-4 border-white"
+              />
+              <p className="text-xs text-gray-600 mt-2 font-medium">
+                ⚡ Mais de 15.000 mulheres já transformaram seus corpos
+              </p>
+            </div>
+          </div>
+
+          {/* Segunda Oferta Mobile - CORRIGIDA */}
           <Card className="mb-5 border-4 border-red-400 shadow-2xl bg-gradient-to-br from-red-50 to-yellow-50">
             <CardContent className="p-4 text-center">
               <div className="bg-red-500 text-white px-3 py-2 rounded-full inline-block mb-3 text-xs font-bold animate-bounce">
@@ -411,7 +460,84 @@ export default function ResultsPage() {
             </CardContent>
           </Card>
 
-          {/* CTA Final Mobile */}
+          {/* Garantia Mobile */}
+          <div className="bg-gradient-to-br from-blue-50 to-green-50 rounded-xl p-4 mb-6 shadow-lg border-2 border-blue-200 text-center">
+            <div className="bg-blue-500 text-white rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3 text-lg font-bold">
+              30
+              <span className="text-xs ml-1">DIAS</span>
+            </div>
+            <h3 className="text-lg font-bold text-gray-800 mb-2">
+              🛡️ Garantia Blindada de Resultados
+            </h3>
+            <p className="text-gray-700 text-xs mb-3 leading-relaxed">
+              <strong>Teste o Plano A por 30 dias completos.</strong> Se você não perder pelo menos 4kg 
+              ou não ficar 100% satisfeita com os resultados, devolvemos todo seu dinheiro. 
+              <strong>Sem perguntas, sem burocracia.</strong>
+            </p>
+            <p className="text-blue-600 text-xs font-semibold">
+              📧 Suporte: <a href="mailto:secaplanoa@gmail.com" className="underline">
+                secaplanoa@gmail.com
+              </a>
+            </p>
+          </div>
+
+          {/* Depoimentos Adicionais Mobile */}
+          <div className="mb-6">
+            <div className="space-y-3">
+              {[
+                {
+                  name: "Patrícia Alves",
+                  avatar: "https://optimalhealthscout.shop/wp-content/uploads/2025/06/1-DEPOIMENTO.png",
+                  rating: 5,
+                  text: "Incrível! 6kg em 3 semanas e sem aquela fome desesperadora que eu sentia em outras dietas. O protocolo é muito inteligente! 🤩",
+                  days: "há 4 dias"
+                },
+                {
+                  name: "Roberta Lima",
+                  avatar: "https://optimalhealthscout.shop/wp-content/uploads/2025/06/2fc1e47b2931f00666611ff2960c9c3f.jpg",
+                  rating: 5,
+                  text: "Meninas, funciona mesmo! Já eliminei 7kg e o melhor: não voltei a ganhar peso. O anti-efeito sanfona é real! 💪",
+                  days: "há 1 semana"
+                },
+                {
+                  name: "Camila Santos",
+                  avatar: "https://optimalhealthscout.shop/wp-content/uploads/2025/06/2-DEPOIMENTO.png",
+                  rating: 5,
+                  text: "Comprei ontem e já comecei hoje! As orientações são super claras e fáceis de seguir. Ansiosa pelos resultados! 🔥",
+                  days: "há 1 dia"
+                },
+                {
+                  name: "Luciana Ferreira",
+                  avatar: "https://optimalhealthscout.shop/wp-content/uploads/2025/06/4-DEPOIMENTO.png",
+                  rating: 5,
+                  text: "Melhor investimento que já fiz! R\$ 23 que mudaram minha vida. 5kg a menos e muito mais disposição! ⚡",
+                  days: "há 6 dias"
+                }
+              ].map((testimonial, index) => (
+                <Card key={index} className="p-3 shadow-md border-l-4 border-blue-400 bg-gradient-to-r from-blue-50 to-white">
+                  <div className="flex items-center mb-2">
+                    <img
+                      src={testimonial.avatar || "/placeholder.svg"}
+                      alt={testimonial.name}
+                      className="w-8 h-8 rounded-full mr-2 object-cover border-2 border-blue-400 flex-shrink-0"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <h4 className="font-semibold text-gray-800 text-xs truncate">{testimonial.name}</h4>
+                        <span className="text-xs text-gray-500 flex-shrink-0 ml-2">{testimonial.days}</span>
+                      </div>
+                      <div className="flex text-yellow-400 text-xs">
+                        {"★".repeat(testimonial.rating)}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-xs text-gray-700">{testimonial.text}</p>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* CTA Final Mobile - CORRIGIDO */}
           <div className="bg-gradient-to-br from-green-600 to-green-700 rounded-xl p-4 text-center text-white mb-4">
             <h3 className="text-lg font-bold mb-2">🎯 Sua transformação começa HOJE!</h3>
             <p className="text-xs mb-3 opacity-90">
