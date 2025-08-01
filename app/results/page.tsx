@@ -9,33 +9,107 @@ import Script from "next/script"
 export default function ResultsPage() {
   const [imageProgress, setImageProgress] = useState(50)
 
-  // ✅ Função para preservar UTMs na navegação para checkout
+  // ✅ Função MELHORADA para preservar UTMs + converter fbclid
   const navigateToCheckoutWithUTMs = (checkoutUrl: string) => {
     if (typeof window === "undefined") return
 
     const currentParams = new URLSearchParams(window.location.search)
     const utmParams = new URLSearchParams()
     
-    // Preservar todos os parâmetros UTM e outros parâmetros de tracking
-    const trackingParams = [
-      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
-      'gclid', 'fbclid', 'msclkid', 'ttclid',
-      'ref', 'referrer', 'source', 'aid', 'cid', 'sid',
-    ]
-    
-    trackingParams.forEach(param => {
+    // Preservar UTMs padrão
+    const standardUTMs = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content']
+    standardUTMs.forEach(param => {
       const value = currentParams.get(param)
       if (value) {
         utmParams.set(param, value)
       }
     })
     
-    // Construir URL final do checkout com UTMs
+    // ✅ CONVERTER parâmetros específicos para UTMs padrão
+    const facebookParams = ['fbclid']
+    const googleParams = ['gclid']
+    const microsoftParams = ['msclkid']
+    const tiktokParams = ['ttclid']
+    
+    // Converter Facebook
+    facebookParams.forEach(param => {
+      const value = currentParams.get(param)
+      if (value) {
+        // Se não tem utm_source definida, define como facebook
+        if (!utmParams.get('utm_source')) {
+          utmParams.set('utm_source', 'facebook')
+        }
+        if (!utmParams.get('utm_medium')) {
+          utmParams.set('utm_medium', 'social')
+        }
+        // Preserva o valor original como utm_content
+        utmParams.set('utm_content', value)
+      }
+    })
+    
+    // Converter Google
+    googleParams.forEach(param => {
+      const value = currentParams.get(param)
+      if (value) {
+        if (!utmParams.get('utm_source')) {
+          utmParams.set('utm_source', 'google')
+        }
+        if (!utmParams.get('utm_medium')) {
+          utmParams.set('utm_medium', 'cpc')
+        }
+        utmParams.set('utm_content', value)
+      }
+    })
+    
+    // Converter Microsoft
+    microsoftParams.forEach(param => {
+      const value = currentParams.get(param)
+      if (value) {
+        if (!utmParams.get('utm_source')) {
+          utmParams.set('utm_source', 'bing')
+        }
+        if (!utmParams.get('utm_medium')) {
+          utmParams.set('utm_medium', 'cpc')
+        }
+        utmParams.set('utm_content', value)
+      }
+    })
+    
+    // Converter TikTok
+    tiktokParams.forEach(param => {
+      const value = currentParams.get(param)
+      if (value) {
+        if (!utmParams.get('utm_source')) {
+          utmParams.set('utm_source', 'tiktok')
+        }
+        if (!utmParams.get('utm_medium')) {
+          utmParams.set('utm_medium', 'social')
+        }
+        utmParams.set('utm_content', value)
+      }
+    })
+    
+    // Outros parâmetros de tracking
+    const otherParams = ['ref', 'referrer', 'source', 'aid', 'cid', 'sid']
+    otherParams.forEach(param => {
+      const value = currentParams.get(param)
+      if (value) {
+        utmParams.set(param, value)
+      }
+    })
+    
+    // Log para debug (remover em produção)
+    console.log('Parâmetros originais:', Object.fromEntries(currentParams.entries()))
+    console.log('UTMs convertidas:', Object.fromEntries(utmParams.entries()))
+    
+    // Construir URL final do checkout
     const finalCheckoutUrl = utmParams.toString() 
       ? `${checkoutUrl}?${utmParams.toString()}`
       : checkoutUrl
     
-    // Navegar para o checkout externo
+    console.log('URL final do checkout:', finalCheckoutUrl)
+    
+    // Navegar para o checkout
     window.location.href = finalCheckoutUrl
   }
 
@@ -55,7 +129,7 @@ export default function ResultsPage() {
         price: "R\$ 19,90",
       })
     }
-    // ✅ CORREÇÃO: Navegar para checkout preservando UTMs
+    // ✅ Usar função melhorada
     navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380")
   }
 
