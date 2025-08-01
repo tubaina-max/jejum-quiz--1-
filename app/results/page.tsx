@@ -445,8 +445,8 @@ export default function ResultsPage() {
               <strong>Sem perguntas, sem burocracia.</strong>
             </p>
             <p className="text-blue-600 text-xs font-semibold">
-              📧 Suporte: <a href="mailto:contato@tprodutodigitalssc.shop" className="underline">
-                contato@tprodutodigitalssc.shop
+              📧 Suporte: <a href="mailto:secaplanoa@gmail.com" className="underline">
+                secaplanoa@gmail.com
               </a>
             </p>
           </div>
