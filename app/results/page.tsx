@@ -9,30 +9,43 @@ import Script from "next/script"
 export default function ResultsPage() {
   const [imageProgress, setImageProgress] = useState(50)
 
-  // ✅ Função SIMPLIFICADA para trabalhar com UTMify
-  const navigateToCheckoutWithUTMs = (checkoutUrl: string) => {
-    if (typeof window === "undefined") return
+  // ✅ SOLUÇÃO: Aguardar UTMify processar
+  const handleReceivePlan = async () => {
+    // Google Analytics
+    if (typeof window !== "undefined" && (window as any).gtag) {
+      ;(window as any).gtag("event", "plan_received", {
+        plan_name: "Plano A - Seca Jejum",
+        price: "R\$ 19,90",
+      })
+    }
 
-    const currentParams = new URLSearchParams(window.location.search)
-    const utmParams = new URLSearchParams()
-    
-    // Preservar TODOS os parâmetros da URL atual (UTMify + outros)
-    currentParams.forEach((value, key) => {
-      utmParams.set(key, value)
-    })
-    
-    // Log para debug (remover em produção)
-    console.log('Parâmetros preservados:', Object.fromEntries(utmParams.entries()))
-    
-    // Construir URL final do checkout
-    const finalCheckoutUrl = utmParams.toString() 
-      ? `${checkoutUrl}?${utmParams.toString()}`
-      : checkoutUrl
-    
-    console.log('URL final do checkout:', finalCheckoutUrl)
-    
-    // Navegar para o checkout
-    window.location.href = finalCheckoutUrl
+    // ✅ Aguardar UTMify estar pronto
+    const waitForUTMify = () => {
+      return new Promise((resolve) => {
+        if (window.UTMify && window.UTMify.getLink) {
+          resolve(true)
+        } else {
+          setTimeout(() => waitForUTMify().then(resolve), 100)
+        }
+      })
+    }
+
+    try {
+      await waitForUTMify()
+      
+      // ✅ Usar UTMify para gerar link com UTMs
+      const checkoutUrl = window.UTMify.getLink("https://pay.cakto.com.br/37iud5r_506380")
+      
+      console.log('URL gerada pelo UTMify:', checkoutUrl)
+      
+      // ✅ Navegar para checkout
+      window.location.href = checkoutUrl
+      
+    } catch (error) {
+      console.error('Erro ao processar UTMify:', error)
+      // ✅ Fallback: ir direto para checkout
+      window.location.href = "https://pay.cakto.com.br/37iud5r_506380"
+    }
   }
 
   useEffect(() => {
@@ -44,21 +57,10 @@ export default function ResultsPage() {
     }
   }, [])
 
-  const handleReceivePlan = () => {
-    if (typeof window !== "undefined" && (window as any).gtag) {
-      ;(window as any).gtag("event", "plan_received", {
-        plan_name: "Plano A - Seca Jejum",
-        price: "R\$ 19,90",
-      })
-    }
-    // ✅ Usar função simplificada para UTMify
-    navigateToCheckoutWithUTMs("https://pay.cakto.com.br/37iud5r_506380")
-  }
-
   return (
     <>
-      {/* ✅ Scripts do UTMify - PRIORIDADE MÁXIMA */}
-      <Script id="utmify-pixel-script" strategy="beforeInteractive">
+      {/* ✅ Scripts UTMify otimizados */}
+      <Script id="utmify-pixel-script" strategy="afterInteractive">
         {`
           window.pixelId = "688bd76d39249d6f834ff133";
           var a = document.createElement("script");
@@ -73,7 +75,7 @@ export default function ResultsPage() {
         src="https://cdn.utmify.com.br/scripts/utms/latest.js"
         data-utmify-prevent-xcod-sck
         data-utmify-prevent-subids
-        strategy="beforeInteractive"
+        strategy="afterInteractive"
         async
         defer
       />
@@ -235,7 +237,7 @@ export default function ResultsPage() {
                   <span className="text-2xl font-black text-green-600 ml-1">R\$ 5,77</span>
                 </div>
                 <p className="text-xs text-green-700 font-semibold">
-                  ✅ Ou R\$ 19,90 à vista 79% de desconto)
+                  ✅ Ou R\$ 19,90 à vista (79% de desconto)
                 </p>
               </div>
               <Button
@@ -261,7 +263,6 @@ export default function ResultsPage() {
             </CardContent>
           </Card>
 
-          {/* Resto do conteúdo permanece igual... */}
           {/* Como Funciona Mobile */}
           <div className="mb-6">
             <h2 className="text-xl font-bold text-gray-800 mb-3 text-center">
