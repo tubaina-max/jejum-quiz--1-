@@ -4,9 +4,10 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowLeft, Flame, Sparkles, TrendingUp, Heart, Brain } from "lucide-react"
-import type { QuizData, QuizOption } from "@/types/quiz" // Import QuizOption
+import type { QuizData, QuizOption } from "@/types/quiz"
 import { quizSteps } from "@/data/quiz-steps"
-import Script from "next/script" // Import Script from next/script
+import Script from "next/script"
+import { useRouter } from "next/navigation" // ✅ Adicionado
 
 export default function QuizPage() {
   const [currentStep, setCurrentStep] = useState(0)
@@ -17,6 +18,36 @@ export default function QuizPage() {
   const [inputValue, setInputValue] = useState<string>("")
   const [selectedMultiple, setSelectedMultiple] = useState<string[]>([])
   const [showFinalLoading, setShowFinalLoading] = useState(false)
+  
+  const router = useRouter() // ✅ Adicionado
+
+  // ✅ Função para preservar UTMs na navegação
+  const navigateWithUTMs = (path: string) => {
+    if (typeof window === "undefined") return
+
+    const currentParams = new URLSearchParams(window.location.search)
+    const utmParams = new URLSearchParams()
+    
+    // Preservar todos os parâmetros UTM e outros parâmetros de tracking
+    const trackingParams = [
+      'utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content',
+      'gclid', 'fbclid', 'msclkid', 'ttclid',
+      'ref', 'referrer', 'source', 'aid', 'cid', 'sid',
+    ]
+    
+    trackingParams.forEach(param => {
+      const value = currentParams.get(param)
+      if (value) {
+        utmParams.set(param, value)
+      }
+    })
+    
+    const finalUrl = utmParams.toString() 
+      ? `${path}?${utmParams.toString()}`
+      : path
+    
+    router.push(finalUrl)
+  }
 
   // Initialize slider value when step changes
   useEffect(() => {
@@ -25,7 +56,7 @@ export default function QuizPage() {
       setSliderValue(currentQuizStep.defaultValue)
     }
     if (currentQuizStep.type === "input") {
-      setInputValue("") // Clear input on new step
+      setInputValue("")
     }
 
     // Google Analytics event for quiz step view
@@ -58,7 +89,7 @@ export default function QuizPage() {
         step_id: questionId,
         step_number: currentStep + 1,
         question: currentQuizStep.question,
-        answer: JSON.stringify(answer), // Stringify complex answers
+        answer: JSON.stringify(answer),
       })
     }
 
@@ -86,17 +117,16 @@ export default function QuizPage() {
   const nextStep = () => {
     if (currentStep < quizSteps.length - 1) {
       setCurrentStep((prev) => prev + 1)
-      setSelectedMultiple([]) // Reset multiple choice selection
+      setSelectedMultiple([])
     } else {
-      // Last step (Criando Seu Plano Exclusivo de Transformação )
+      // ✅ CORREÇÃO PRINCIPAL: Preservar UTMs na navegação final
       setShowFinalLoading(true)
-      // Google Analytics event for final loading screen
       if (typeof window !== "undefined" && (window as any).gtag) {
         ;(window as any).gtag("event", "quiz_final_loading_started")
       }
       setTimeout(() => {
-        window.location.href = "/results"
-      }, 3000) // Simulate loading time before redirecting to results
+        navigateWithUTMs("/results") // ✅ Usando função que preserva UTMs
+      }, 3000)
     }
   }
 
@@ -241,7 +271,7 @@ export default function QuizPage() {
               {currentQuizStep.question}
             </h2>
 
-            {/* Social Proof (moved after question for specific steps) */}
+            {/* Social Proof */}
             {currentQuizStep.socialProof && (
               <div className="bg-white rounded-lg p-4 shadow-sm border mb-6">
                 <div className="text-center">
@@ -258,7 +288,7 @@ export default function QuizPage() {
                       <div
                         key={idx}
                         className="relative w-full mt-4"
-                        style={{ paddingTop: "56.25%" /* 16:9 Aspect Ratio */ }}
+                        style={{ paddingTop: "56.25%" }}
                       >
                         <img
                           src={imgSrc || "/placeholder.svg"}
@@ -303,11 +333,10 @@ export default function QuizPage() {
 
             {currentQuizStep.type === "multiple-choice" && (
               <div className="space-y-6">
-                {/* Group options by category */}
                 {Object.entries(
                   currentQuizStep.options?.reduce(
                     (acc, option) => {
-                      const category = option.category || "Outros" // Default category if not specified
+                      const category = option.category || "Outros"
                       if (!acc[category]) {
                         acc[category] = { emoji: option.categoryEmoji, options: [] }
                       }
