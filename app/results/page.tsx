@@ -93,13 +93,13 @@ export default function ResultsPage() {
 
   }, [])
 
-// ✅ FUNÇÃO CORRIGIDA - InitiateCheckout com parâmetros corretos para Facebook
+// ✅ FUNÇÃO CORRIGIDA - InitiateCheckout APENAS (Purchase removido)
 const handleReceivePlan = () => {
   console.log("🛒 Botão clicado - Preparando InitiateCheckout...");
 
   // 🎯 TRACKING UNIFICADO - InitiateCheckout com parâmetros Facebook/Meta
   const trackCheckout = (attempt = 1) => {
-    console.log(`🔄 Tentativa ${attempt} de InitiateCheckout...`);
+    console.log(`�� Tentativa ${attempt} de InitiateCheckout...`);
     
     if (typeof window !== "undefined" && window.trackEvent) {
       // Parâmetros otimizados para Facebook/Meta Ads
@@ -124,23 +124,6 @@ const handleReceivePlan = () => {
 
       window.trackEvent('InitiateCheckout', checkoutData);
       console.log("✅ InitiateCheckout disparado com parâmetros Facebook:", checkoutData);
-      
-      // TAMBÉM disparar como Purchase para garantir
-      setTimeout(() => {
-        if (window.trackEvent) {
-          window.trackEvent('Purchase', {
-            content_name: 'Plano A - Seca Jejum',
-            content_category: 'digital_product',
-            content_type: 'product',
-            content_ids: ['plano-a-seca-jejum'],
-            value: 19.90,
-            currency: 'BRL',
-            transaction_id: 'quiz_' + Date.now(),
-            event_source_url: window.location.href
-          });
-          console.log("✅ Purchase BACKUP também disparado");
-        }
-      }, 1000);
       
       return true;
     } else {
